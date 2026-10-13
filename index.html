@@ -1347,6 +1347,16 @@ body.light .fgrp select option{
   <div class="pn">إنستا باي</div>
 </div>
 </div>
+<div id="payBox" class="hide">
+  <div class="copy-box" style="background:linear-gradient(135deg,rgba(255,32,32,.12),rgba(255,32,32,.04));border:2px dashed rgba(255,32,32,.5);padding:16px;margin-bottom:14px">
+    <div>
+      <div style="color:var(--mt);font-size:.78rem;font-weight:700;margin-bottom:6px">📱 حوّل المبلغ إلى الرقم</div>
+      <div class="n" id="tNum" style="font-size:1.4rem;font-weight:900;color:var(--r);font-family:monospace;letter-spacing:1px">-</div>
+      <div style="color:var(--mt);font-size:.72rem;margin-top:6px">اضغط نسخ ثم حوّل المبلغ من محفظتك</div>
+    </div>
+    <button class="b" type="button" onclick="copyText(document.getElementById('tNum').textContent)">📋 نسخ الرقم</button>
+  </div>
+</div>
 <div class="fgrp"><label>المبلغ (ج.م)</label><input type="number" id="tuAmt" placeholder="100" min="10"></div>
 <div class="fgrp"><label>صورة الإيصال</label>
 <div class="upload-box" id="upBox" onclick="document.getElementById('tuFile').click()">
