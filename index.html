@@ -1230,6 +1230,7 @@ body.light .fgrp select option{
 <button class="tab" data-tab="custs" onclick="aTab('custs',this)">👥 العملاء</button>
 <button class="tab" onclick="aTab('coupons',this)">🎁 الكوبونات</button>
 <button class="tab" onclick="aTab('broadcast',this)">📢 إشعار جماعي</button>
+<button class="tab" onclick="aTab('anns',this)">📢 الإعلانات</button>
 <button class="tab" data-tab="settings" onclick="aTab('settings',this)">🔧 الإعدادات</button>
 </div>
 <div class="body" id="aMain"></div>
@@ -2312,6 +2313,7 @@ function aTab(name,el){
   else if(name==='custs')aCusts(m);
   else if(name==='coupons')aCoupons(m);
   else if(name==='broadcast')aBroadcast(m);
+  else if(name==='anns')aAnns(m);
   else if(name==='reports')aReports(m);
   else if(name==='settings')aSettings(m);
 }
@@ -4143,6 +4145,144 @@ function loadPaymentIcons(){
 document.addEventListener('DOMContentLoaded', function(){
   setTimeout(loadPaymentIcons, 500);
 });
+
+/* ============ ADMIN: ANNOUNCEMENTS ============ */
+function aAnns(c){
+  var activeCount = ANNS.filter(function(a){ return a.active; }).length;
+  var totalCount = ANNS.length;
+  
+  var html = '<div class="ph"><h1>📢 إدارة الإعلانات</h1><span style="color:var(--mt);font-size:.85rem">' + activeCount + ' مفعّل من ' + totalCount + '</span></div>';
+  
+  // فورم إضافة إعلان
+  html += '<div class="tc" style="background:rgba(255,32,32,.05);border-color:rgba(255,32,32,.25)">' +
+    '<h3>➕ إضافة إعلان جديد</h3>' +
+    '<form onsubmit="addAnn(event)" style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<input type="text" id="newAnnTxt" required maxlength="150" placeholder="اكتب نص الإعلان (مثال: 🎉 خصم 20% على جميع الملابس)" style="flex:1;min-width:250px;padding:12px 14px;background:rgba(0,0,0,.4);border:1px solid var(--bd);border-radius:10px;color:var(--tx);font-family:inherit;font-size:.92rem">' +
+    '<button type="submit" class="ba" style="min-width:120px">➕ إضافة</button>' +
+    '</form>' +
+    '<p style="color:var(--mt);font-size:.75rem;margin-top:8px">✨ يمكنك استخدام الإيموجي — الحد الأقصى 150 حرف</p>' +
+    '</div>';
+  
+  // قائمة الإعلانات
+  html += '<div class="tc"><h3>📋 الإعلانات الحالية</h3>';
+  
+  if(!ANNS.length){
+    html += '<div class="emp"><div class="ei">📢</div><p>لا توجد إعلانات بعد</p></div>';
+  } else {
+    ANNS.forEach(function(a){
+      var bgColor = a.active ? 'rgba(0,200,100,.05)' : 'rgba(100,100,100,.05)';
+      var borderColor = a.active ? 'rgba(0,200,100,.3)' : 'var(--bd)';
+      var opacity = a.active ? '1' : '.6';
+      
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:14px;background:' + bgColor + ';border:1px solid ' + borderColor + ';border-radius:12px;margin-bottom:10px;opacity:' + opacity + '">' +
+        '<div style="font-size:1.5rem">' + (a.active ? '✅' : '⏸️') + '</div>' +
+        '<div style="flex:1;color:var(--tx);font-size:.92rem;line-height:1.6;word-break:break-word">' + escHtml(a.text) + '</div>' +
+        '<div style="display:flex;gap:6px;flex-shrink:0">' +
+        '<button class="bs ' + (a.active ? 'be' : 'bok') + '" onclick="toggleAnn(' + a.id + ')" title="' + (a.active ? 'إيقاف' : 'تفعيل') + '">' +
+        (a.active ? '⏸️ إيقاف' : '▶️ تفعيل') +
+        '</button>' +
+        '<button class="bs be" onclick="editAnn(' + a.id + ')" title="تعديل">✏️</button>' +
+        '<button class="bs bd" onclick="delAnn(' + a.id + ')" title="حذف">🗑️</button>' +
+        '</div>' +
+        '</div>';
+    });
+  }
+  
+  html += '</div>';
+  
+  c.innerHTML = html;
+}
+
+async function addAnn(ev){
+  ev.preventDefault();
+  var txt = document.getElementById('newAnnTxt').value.trim();
+  if(!txt){
+    toast('اكتب نص الإعلان', true);
+    return;
+  }
+  if(txt.length > 150){
+    toast('النص أطول من 150 حرف', true);
+    return;
+  }
+  
+  try{
+    var r = await db.from('announcements').insert({ text: txt, active: true });
+    if(r.error) throw r.error;
+    
+    await loadAnns(); // إعادة تحميل الإعلانات
+    aAnns(g('aMain'));
+    toast('✅ تم إضافة الإعلان');
+  }catch(e){
+    console.error('addAnn', e);
+    toast('خطأ: ' + (e.message || 'فشل'), true);
+  }
+}
+
+async function toggleAnn(id){
+  var a = ANNS.find(function(x){ return x.id === id; });
+  if(!a) return;
+  
+  try{
+    var r = await db.from('announcements').update({ active: !a.active }).eq('id', id);
+    if(r.error) throw r.error;
+    
+    await loadAnns();
+    aAnns(g('aMain'));
+    toast(a.active ? '⏸️ تم إيقاف الإعلان' : '✅ تم تفعيل الإعلان');
+  }catch(e){
+    console.error('toggleAnn', e);
+    toast('خطأ: ' + (e.message || 'فشل'), true);
+  }
+}
+
+async function editAnn(id){
+  var a = ANNS.find(function(x){ return x.id === id; });
+  if(!a) return;
+  
+  var newText = prompt('عدّل نص الإعلان:', a.text);
+  if(newText === null) return;
+  
+  newText = newText.trim();
+  if(!newText){
+    toast('النص ما ينفعش يكون فاضي', true);
+    return;
+  }
+  if(newText.length > 150){
+    toast('النص أطول من 150 حرف', true);
+    return;
+  }
+  
+  try{
+    var r = await db.from('announcements').update({ text: newText }).eq('id', id);
+    if(r.error) throw r.error;
+    
+    await loadAnns();
+    aAnns(g('aMain'));
+    toast('✅ تم التعديل');
+  }catch(e){
+    console.error('editAnn', e);
+    toast('خطأ: ' + (e.message || 'فشل'), true);
+  }
+}
+
+async function delAnn(id){
+  var a = ANNS.find(function(x){ return x.id === id; });
+  if(!a) return;
+  
+  if(!confirm('حذف الإعلان:\n"' + a.text + '"؟')) return;
+  
+  try{
+    var r = await db.from('announcements').delete().eq('id', id);
+    if(r.error) throw r.error;
+    
+    await loadAnns();
+    aAnns(g('aMain'));
+    toast('🗑️ تم الحذف');
+  }catch(e){
+    console.error('delAnn', e);
+    toast('خطأ: ' + (e.message || 'فشل'), true);
+  }
+}
 
 </script>
 </body>
